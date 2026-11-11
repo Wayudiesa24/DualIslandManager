@@ -44,3 +44,12 @@ jobs:
           name: dual-island-manager-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+
+      - name: Publish direct-download test APK
+        if: success()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view v1.0.0-test >/dev/null 2>&1 || gh release create v1.0.0-test --title "Dual Island Manager v1 test build" --notes "Experimental debug-signed Android APK. Test before everyday use. You may need to uninstall an earlier test version before updating if its debug signing key has changed." --prerelease
+          gh release upload v1.0.0-test app/build/outputs/apk/debug/app-debug.apk --clobber
