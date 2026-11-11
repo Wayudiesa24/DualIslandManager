@@ -1,0 +1,46 @@
+name: Build Dual Island Manager APK
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract Android source snapshot
+        run: |
+          tar -xJf dual-island-source.tar.xz
+          cp -a DualIslandManager/app .
+          cp DualIslandManager/build.gradle DualIslandManager/settings.gradle DualIslandManager/gradle.properties .
+          cp DualIslandManager/README.md README.md
+      - name: Publish Android source as browsable files
+        continue-on-error: true
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app build.gradle settings.gradle gradle.properties README.md
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish Android source files"
+            git push origin HEAD:main
+          fi
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android SDK
+        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - name: Build debug APK
+        run: gradle --no-daemon :app:assembleDebug
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: dual-island-manager-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
